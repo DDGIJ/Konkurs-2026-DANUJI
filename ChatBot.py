@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import scrolledtext
 
 
-class Bot:
+class ChatBot:
     def __init__(self):
         self.name = ""
         self.topic = "name"
@@ -26,6 +26,12 @@ class Bot:
             }
         }
 
+        self.topic_names = {
+            "robot": "роботы",
+            "code": "программирование",
+            "game": "игры"
+        }
+
         self.dialog = {
             "robot": {
                 "answer": "А чему хочешь научить робота дальше?",
@@ -44,7 +50,7 @@ class Bot:
                 "next": ""
             },
             "game": {
-                "answer": "Что тебе нравится в этой игре?",
+                "answer": "Что тебе больше всего нравится в этой игре?",
                 "next": "game_details"
             },
             "game_details": {
@@ -69,6 +75,14 @@ class Bot:
 
         return " ".join(text.split())
 
+    def get_topic_list(self):
+        topic_list = ""
+
+        for topic in self.topic_names.values():
+            topic_list += topic + ", "
+
+        return topic_list[:-2]
+
     def find_topic(self, text):
         words = text.split()
 
@@ -81,9 +95,7 @@ class Bot:
 
     def continue_dialog(self):
         step = self.dialog[self.topic]
-
         self.topic = step["next"]
-
         return step["answer"]
 
     def reply(self, message):
@@ -113,16 +125,23 @@ class Bot:
 
             return f"Приятно познакомиться, {self.name}! Как прошёл день?"
 
-        if text in ["привет", "здравствуй", "здравствуйте"]:
+        if text in ["спасибо", "благодарю"]:
+            return "Пожалуйста!"
+
+        if text in [
+            "привет",
+            "здравствуй",
+            "здравствуйте",
+            "добрый день",
+            "доброе утро",
+            "добрый вечер"
+        ]:
             if self.name:
                 self.topic = "day"
                 return f"Привет, {self.name}! Как прошёл день?"
 
             self.topic = "name"
             return "Привет! Как тебя зовут?"
-
-        if text in ["спасибо", "благодарю"]:
-            return "Пожалуйста!"
 
         if "как дела" in text:
             self.topic = "day"
@@ -176,55 +195,46 @@ class Bot:
                 "Можешь продолжить или написать «сменим тему»."
             )
 
-        return random.choice([
-            "Расскажи немного подробнее.",
-            "Не совсем понял. Можешь сказать по-другому?",
-            "Можем поговорить о роботах, программах или играх."
-        ])
+        return (
+            "Не совсем понял, что вы написали. "
+            "Давайте поговорим на эти темы: "
+            + self.get_topic_list()
+            + "."
+        )
 
 
-class App:
+class ChatApp:
     def __init__(self, root):
-        self.bot = Bot()
+        self.bot = ChatBot()
 
-        root.title("Бот")
-        root.geometry("650x550")
-        root.minsize(450, 350)
-        root.configure(bg="#af6c6c")
+        root.title("Мой чат-бот")
+        root.geometry("680x560")
+        root.minsize(480, 360)
+        root.configure(bg="#edf0f5")
 
-        bottom_frame = tk.Frame(root, bg="#b8abab")
-        bottom_frame.pack(
+        bottom = tk.Frame(root, bg="#edf0f5")
+        bottom.pack(
             side=tk.BOTTOM,
             fill=tk.X,
             padx=12,
             pady=12
         )
 
-        clear_button = tk.Button(
-            bottom_frame,
-            text="Очистить диалог",
-            command=self.clear_chat,
-            bg="#534C4C",
-            fg="white",
-            padx=8,
-            pady=6
-        )
-        clear_button.pack(side=tk.RIGHT, padx=(6, 0))
-
         send_button = tk.Button(
-            bottom_frame,
+            bottom,
             text="Отправить",
             command=self.send_message,
-            bg="#534C4C",
+            bg="#356ac3",
             fg="white",
-            padx=10,
+            font=("Arial", 14),
+            padx=12,
             pady=6
         )
-        send_button.pack(side=tk.RIGHT, padx=(6, 0))
+        send_button.pack(side=tk.RIGHT, padx=(8, 0))
 
         self.entry = tk.Entry(
-            bottom_frame,
-            font=("Times New Roman", 14)
+            bottom,
+            font=("Arial", 12)
         )
         self.entry.pack(
             side=tk.LEFT,
@@ -234,20 +244,38 @@ class App:
         )
         self.entry.bind("<Return>", self.send_message)
 
+        top = tk.Frame(root, bg="#edf0f5")
+        top.pack(fill=tk.X, padx=12, pady=(10, 0))
+
+        title = tk.Label(
+            top,
+            text="Небольшой собеседник",
+            font=("Arial", 14, "bold"),
+            bg="#edf0f5"
+        )
+        title.pack(side=tk.LEFT)
+
+        restart_button = tk.Button(
+            top,
+            text="Новый разговор",
+            command=self.restart_chat
+        )
+        restart_button.pack(side=tk.RIGHT)
+
         self.chat = scrolledtext.ScrolledText(
             root,
             wrap=tk.WORD,
-            font=("Times New Roman", 14),
+            font=("Arial", 12),
             bg="white",
-            padx=12,
-            pady=12,
+            padx=14,
+            pady=14,
             state="disabled"
         )
         self.chat.pack(
             fill=tk.BOTH,
             expand=True,
             padx=12,
-            pady=(12, 0)
+            pady=(10, 0)
         )
 
         self.chat.tag_configure("user", foreground="#2458a6")
@@ -255,10 +283,12 @@ class App:
 
         self.add_message(
             "Бот",
-            "Привет! Напиши сообщение или слово «помощь».",
+            "Привет! Я простой бот по правилам, но попробую "
+            "поддержать разговор. Как тебя зовут?",
             "bot"
         )
 
+        self.bot.topic = "name"
         self.entry.focus_set()
 
     def add_message(self, author, message, tag):
@@ -271,31 +301,38 @@ class App:
     def send_message(self, event=None):
         message = self.entry.get().strip()
 
-        if not message:
+        if message == "":
             return
 
         self.entry.delete(0, tk.END)
 
         self.add_message("Ты", message, "user")
+
         answer = self.bot.reply(message)
         self.add_message("Бот", answer, "bot")
 
         self.entry.focus_set()
 
-    def clear_chat(self):
+    def restart_chat(self):
+        self.bot = ChatBot()
+        self.bot.topic = "name"
+
         self.chat.configure(state="normal")
         self.chat.delete("1.0", tk.END)
         self.chat.configure(state="disabled")
 
+        self.entry.delete(0, tk.END)
+
         self.add_message(
             "Бот",
-            "Переписка очищена. Можем продолжать!",
+            "Начнём заново! Как тебя зовут?",
             "bot"
         )
+
         self.entry.focus_set()
 
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = App(root)
+    app = ChatApp(root)
     root.mainloop()
